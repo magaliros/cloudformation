@@ -119,6 +119,34 @@ Resources:
         AllocationId: !GetAtt NatGateway2EIP.AllocationId
         SubnetId: !Ref PublicSubnet2
 
+  PublicRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties: 
+          VpcId: !Ref VPC
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${EnvironmentName} Public Routes
+
+  DefaultPublicRoute: 
+      Type: AWS::EC2::Route
+      DependsOn: InternetGatewayAttachment
+      Properties: 
+          RouteTableId: !Ref PublicRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref PublicRouteTable
+          SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref PublicRouteTable
+          SubnetId: !Ref PublicSubnet2
+
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties: 
@@ -127,12 +155,12 @@ Resources:
             - Key: Name 
               Value: !Sub ${EnvironmentName} Private Routes (AZ1)
   DefaultPrivateRoute1:
-    DependsOn: AttachVpnGateway
+    DependsOn: InternetGatewayAttachment
     Type: AWS::EC2::Route
     Properties:
         RouteTableId: !Ref PrivateRouteTable1
         DestinationCidrBlock: 0.0.0.0/0
-        GatewayId: !Ref VPCVGW
+        GatewayId: !Ref NatGateway1
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -146,12 +174,12 @@ Resources:
             - Key: Name 
               Value: !Sub ${EnvironmentName} Private Routes (AZ2)
   DefaultPrivateRoute2:
-    DependsOn: AttachVpnGateway
+    DependsOn: InternetGatewayAttachment
     Type: AWS::EC2::Route
     Properties:
         RouteTableId: !Ref PrivateRouteTable2
         DestinationCidrBlock: 0.0.0.0/0
-        GatewayId: !Ref VPCVGW
+        GatewayId: !Ref NatGateway2
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -288,9 +316,10 @@ Resources:
       Port: 80
       Protocol: HTTP
       UnhealthyThresholdCount: 5
-      VpcId: 
-        Fn::ImportValue:
-          Fn::Sub: "${EnvironmentName}-VPCID"
+      VpcId: !Ref VPC
+      # VpcId: 
+      #   Fn::ImportValue:
+      #     Fn::Sub: "${EnvironmentName}-VPCID"
 
 Outputs: 
 
